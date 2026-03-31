@@ -1,0 +1,15 @@
+{
+  "pages": {
+    "title": {
+      "top": "Home",
+      "blog": "Blog"
+    },
+    "blog": {
+      "empty": "No posts yet.",
+      "notFound": "Post not found"
+    }
+  },
+  "layouts": {
+    "title": "Bennett Website"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "name": "bennett-website",
+  "type": "module",
+  "private": true,
+  "author": "Bennett",
+  "license": "MIT",
+  "homepage": "https://bennett.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bennett/bennett-website.git"
+  },
+  "scripts": {
+    "build": "dotenv -e .env.production nuxt build",
+    "staging": "dotenv -e .env.staging nuxt build",
+    "dev": "dotenv -e .env.development nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@antfu/eslint-config": "^6.7.3",
+    "@iconify/json": "^2.2.452",
+    "@nuxt/content": "^3.12.0",
+    "@nuxt/icon": "^2.2.1",
+    "@nuxt/image": "^2.0.0",
+    "@nuxtjs/i18n": "^10.2.3",
+    "@pinia/nuxt": "^0.11.3",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^24.12.0",
+    "@vue/shared": "^3.5.30",
+    "@vueuse/core": "^14.2.1",
+    "@vueuse/nuxt": "^14.2.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dotenv-cli": "^7.4.4",
+    "eslint": "^9.39.4",
+    "lint-staged": "^16.4.0",
+    "lucide-vue-next": "^0.562.0",
+    "nuxt": "^4.4.2",
+    "nuxt-og-image": "^5.1.13",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
+    "pixi.js": "^8.17.1",
+    "reka-ui": "^2.9.2",
+    "shadcn-nuxt": "2.4.3",
+    "simple-git-hooks": "^2.13.1",
+    "simplex-noise": "^4.0.3",
+    "sweetalert2": "^11.26.24",
+    "swiper": "^12.1.2",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul-vue": "^0.4.1",
+    "vue": "^3.5.30",
+    "vue-router": "^4.6.4",
+    "vue-sonner": "^2.0.9",
+    "zod": "^4.3.6"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
+}

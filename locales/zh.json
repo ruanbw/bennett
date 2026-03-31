@@ -1,0 +1,15 @@
+{
+  "pages": {
+    "title": {
+      "top": "首页",
+      "blog": "博客"
+    },
+    "blog": {
+      "empty": "暂无文章。",
+      "notFound": "文章未找到"
+    }
+  },
+  "layouts": {
+    "title": "Bennett 网站"
+  }
+}
