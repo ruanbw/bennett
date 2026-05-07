@@ -1,6 +1,6 @@
 ---
-title: 浏览器 DevTools 开启检测
-description: 浏览器控制台检测技术深度解析
+title: SSR 应用运行时配置热重载：Next.js 与 Nuxt 3 双框架实战方案
+description: SSR 应用运行时配置热重载：Next.js 与 Nuxt 3 双框架实战方案
 date: 2026-04-21
 ---
 
