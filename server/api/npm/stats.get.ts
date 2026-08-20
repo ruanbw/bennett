@@ -28,14 +28,14 @@ export interface NpmPackageStat {
   description: string | null
   version: string
   npmUrl: string
-  downloads: { lastWeek: number, lastMonth: number }
+  downloads: { lastWeek: number, lastMonth: number, total: number }
 }
 
 export interface NpmStatsPayload {
   maintainer: string
   org: string | null
   updatedAt: string
-  totals: { packageCount: number, lastWeek: number, lastMonth: number }
+  totals: { packageCount: number, lastWeek: number, lastMonth: number, total: number }
   packages: NpmPackageStat[]
 }
 
@@ -139,14 +139,18 @@ export default defineCachedEventHandler(async (event): Promise<NpmStatsPayload> 
 
   const packagesMeta = [...discovered.values()]
 
-  // 2) fetch downloads point for each package (week + month), concurrency 5
+  // 2) fetch downloads point for each package (week + month + total), concurrency 5
+  const today = new Date().toISOString().slice(0, 10)
+  const totalRange = `2015-01-10:${today}`
   const packages: NpmPackageStat[] = await pMapLimit(packagesMeta, 5, async (meta) => {
     const enc = encodeURIComponent(meta.name)
     const weekUrl = `https://api.npmjs.org/downloads/point/last-week/${enc}`
     const monthUrl = `https://api.npmjs.org/downloads/point/last-month/${enc}`
-    const [w, m] = await Promise.all([
+    const totalUrl = `https://api.npmjs.org/downloads/point/${totalRange}/${enc}`
+    const [w, m, t] = await Promise.all([
       fetchWithTimeout<NpmPointResponse>(weekUrl, 5000).catch(() => ({ downloads: 0 } as NpmPointResponse)),
       fetchWithTimeout<NpmPointResponse>(monthUrl, 5000).catch(() => ({ downloads: 0 } as NpmPointResponse)),
+      fetchWithTimeout<NpmPointResponse>(totalUrl, 6000).catch(() => ({ downloads: 0 } as NpmPointResponse)),
     ])
     return {
       name: meta.name,
@@ -156,17 +160,19 @@ export default defineCachedEventHandler(async (event): Promise<NpmStatsPayload> 
       downloads: {
         lastWeek: Math.max(0, Number(w.downloads) || 0),
         lastMonth: Math.max(0, Number(m.downloads) || 0),
+        total: Math.max(0, Number(t.downloads) || 0),
       },
     }
   })
 
   // 3) totals + sort by lastWeek desc (frontend can re-sort for month tab)
-  packages.sort((a, b) => b.downloads.lastWeek - a.downloads.lastWeek)
+  packages.sort((a, b) => b.downloads.total - a.downloads.total)
 
   const totals = {
     packageCount: packages.length,
     lastWeek: packages.reduce((s, p) => s + p.downloads.lastWeek, 0),
     lastMonth: packages.reduce((s, p) => s + p.downloads.lastMonth, 0),
+    total: packages.reduce((s, p) => s + p.downloads.total, 0),
   }
 
   setHeader(event, 'Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600')

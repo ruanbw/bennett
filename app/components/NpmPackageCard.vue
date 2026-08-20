@@ -5,7 +5,8 @@ const props = defineProps<{
   pkg: NpmPackageStat
   maxWeek: number
   maxMonth: number
-  active: 'week' | 'month'
+  maxTotal: number
+  active: 'week' | 'month' | 'total'
 }>()
 
 function formatInt(n: number) {
@@ -17,15 +18,14 @@ function formatCompact(n: number) {
 }
 
 const barPercent = computed(() => {
-  const max = props.active === 'week' ? props.maxWeek : props.maxMonth
-  const v = props.active === 'week' ? props.pkg.downloads.lastWeek : props.pkg.downloads.lastMonth
+  const max = props.active === 'week' ? props.maxWeek : props.active === 'month' ? props.maxMonth : props.maxTotal
+  const v = props.active === 'week' ? props.pkg.downloads.lastWeek : props.active === 'month' ? props.pkg.downloads.lastMonth : props.pkg.downloads.total
   if (!max)
     return 0
   return Math.max(4, Math.round((v / max) * 100))
 })
 
 const barColor = computed(() => {
-  // stable hue per package name (avoid extra dep)
   let h = 2166136261
   for (let i = 0; i < props.pkg.name.length; i++)
     h = Math.imul(h ^ props.pkg.name.charCodeAt(i), 16777619)
@@ -61,24 +61,31 @@ const barColor = computed(() => {
       <Icon name="carbon:arrow-up-right" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground" aria-hidden="true" />
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
-      <div class="rounded-lg bg-muted/30 px-3 py-2" :class="active === 'week' ? 'ring-1 ring-border bg-muted/40' : ''">
+    <div class="grid grid-cols-3 gap-2">
+      <div class="rounded-lg bg-muted/30 px-2 py-2 sm:px-3" :class="active === 'total' ? 'ring-1 ring-border bg-muted/40' : ''">
+        <div class="text-[11px] tracking-wide text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">总下载</div>
+        <div class="mt-1 flex items-baseline gap-1">
+          <span class="text-base font-semibold tabular-nums text-foreground sm:text-lg" :title="formatInt(pkg.downloads.total)">{{ formatCompact(pkg.downloads.total) }}</span>
+          <span class="text-[11px] text-muted-foreground" :title="formatInt(pkg.downloads.total)">次</span>
+        </div>
+      </div>
+      <div class="rounded-lg bg-muted/30 px-2 py-2 sm:px-3" :class="active === 'week' ? 'ring-1 ring-border bg-muted/40' : ''">
         <div class="text-[11px] tracking-wide text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">近一周</div>
         <div class="mt-1 flex items-baseline gap-1">
-          <span class="text-lg font-semibold tabular-nums text-foreground" :title="formatInt(pkg.downloads.lastWeek)">{{ formatCompact(pkg.downloads.lastWeek) }}</span>
+          <span class="text-base font-semibold tabular-nums text-foreground sm:text-lg" :title="formatInt(pkg.downloads.lastWeek)">{{ formatCompact(pkg.downloads.lastWeek) }}</span>
           <span class="text-[11px] text-muted-foreground" :title="formatInt(pkg.downloads.lastWeek)">次</span>
         </div>
       </div>
-      <div class="rounded-lg bg-muted/30 px-3 py-2" :class="active === 'month' ? 'ring-1 ring-border bg-muted/40' : ''">
+      <div class="rounded-lg bg-muted/30 px-2 py-2 sm:px-3" :class="active === 'month' ? 'ring-1 ring-border bg-muted/40' : ''">
         <div class="text-[11px] tracking-wide text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">近一月</div>
         <div class="mt-1 flex items-baseline gap-1">
-          <span class="text-lg font-semibold tabular-nums text-foreground" :title="formatInt(pkg.downloads.lastMonth)">{{ formatCompact(pkg.downloads.lastMonth) }}</span>
+          <span class="text-base font-semibold tabular-nums text-foreground sm:text-lg" :title="formatInt(pkg.downloads.lastMonth)">{{ formatCompact(pkg.downloads.lastMonth) }}</span>
           <span class="text-[11px] text-muted-foreground" :title="formatInt(pkg.downloads.lastMonth)">次</span>
         </div>
       </div>
     </div>
 
-    <div class="h-1.5 overflow-hidden rounded-full bg-muted" role="presentation" :aria-label="`${active === 'week' ? '周' : '月'}下载占比`">
+    <div class="h-1.5 overflow-hidden rounded-full bg-muted" role="presentation" :aria-label="`${active === 'week' ? '周' : active === 'month' ? '月' : '总'}下载占比`">
       <div
         class="h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500"
         :style="{ width: `${barPercent}%`, background: `oklch(0.60 0.14 ${barColor})` }"

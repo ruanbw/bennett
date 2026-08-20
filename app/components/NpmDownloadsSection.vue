@@ -5,7 +5,7 @@ const props = withDefaults(defineProps<{
   lazy?: boolean
 }>(), { lazy: false })
 
-const active = ref<'week' | 'month'>('week')
+const active = ref<'week' | 'month' | 'total'>('total')
 
 const { data, pending, error, refresh } = await useFetch<NpmStatsPayload>(
   () => '/api/npm/stats',
@@ -22,15 +22,18 @@ function formatCompact(n: number) {
   return new Intl.NumberFormat(undefined, { notation: n >= 10000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(n)
 }
 
-const totals = computed(() => data.value?.totals ?? { packageCount: 0, lastWeek: 0, lastMonth: 0 })
+const totals = computed(() => data.value?.totals ?? { packageCount: 0, lastWeek: 0, lastMonth: 0, total: 0 })
 const maxWeek = computed(() => Math.max(0, ...((data.value?.packages ?? []).map(p => p.downloads.lastWeek))))
 const maxMonth = computed(() => Math.max(0, ...((data.value?.packages ?? []).map(p => p.downloads.lastMonth))))
+const maxTotal = computed(() => Math.max(0, ...((data.value?.packages ?? []).map(p => p.downloads.total))))
 
 const sortedPackages = computed(() => {
   const list = data.value?.packages ?? []
   const copy = [...list]
   if (active.value === 'month')
     copy.sort((a, b) => b.downloads.lastMonth - a.downloads.lastMonth)
+  else if (active.value === 'total')
+    copy.sort((a, b) => b.downloads.total - a.downloads.total)
   else
     copy.sort((a, b) => b.downloads.lastWeek - a.downloads.lastWeek)
   return copy
@@ -60,7 +63,6 @@ const scopeLabel = computed(() => {
     :aria-busy="pending"
     aria-label="NPM 下载量总览"
   >
-    <!-- 装饰：同 Github 卡片体系，偏冷青色与洋红点缀 -->
     <div
       class="pointer-events-none absolute inset-0 opacity-[0.5] dark:opacity-35"
       style="background:
@@ -74,7 +76,6 @@ const scopeLabel = computed(() => {
     />
 
     <div class="relative p-6 sm:p-8">
-      <!-- Loading -->
       <div v-if="pending && !data" class="space-y-5" aria-hidden="true">
         <div class="space-y-2">
           <div class="h-3 w-28 rounded bg-muted motion-safe:animate-pulse" />
@@ -92,7 +93,6 @@ const scopeLabel = computed(() => {
         </div>
       </div>
 
-      <!-- Error -->
       <div v-else-if="error" class="space-y-3" role="alert">
         <p class="text-lg font-semibold" style="font-family: 'Instrument Serif', ui-serif, serif;">
           暂时拉不到下载统计
@@ -121,9 +121,7 @@ const scopeLabel = computed(() => {
         </div>
       </div>
 
-      <!-- Data -->
       <div v-else-if="data" class="space-y-6">
-        <!-- Header row -->
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2
@@ -144,8 +142,17 @@ const scopeLabel = computed(() => {
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <!-- 周/月切换，仅前端重排 -->
             <div class="inline-flex rounded-full border border-border bg-muted/40 p-1 text-xs font-medium" role="tablist" aria-label="排序维度">
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="active === 'total'"
+                class="rounded-full px-3 py-1.5 leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                :class="active === 'total' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'"
+                @click="active = 'total'"
+              >
+                总下载
+              </button>
               <button
                 type="button"
                 role="tab"
@@ -180,9 +187,8 @@ const scopeLabel = computed(() => {
           </div>
         </div>
 
-        <!-- Totals hero -->
-        <div class="grid gap-3 sm:grid-cols-3">
-          <div class="rounded-xl border border-border bg-background/60 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/50 sm:col-span-1">
+        <div class="grid gap-3 sm:grid-cols-4">
+          <div class="rounded-xl border border-border bg-background/60 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/50">
             <div class="text-xs tracking-wide text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
               公开包
             </div>
@@ -191,9 +197,19 @@ const scopeLabel = computed(() => {
               <span class="text-xs text-muted-foreground">个</span>
             </div>
           </div>
+          <div class="rounded-xl border border-primary/20 bg-primary/[0.04] p-4 backdrop-blur supports-[backdrop-filter]:bg-primary/[0.03]">
+            <div class="flex items-center gap-1.5 text-xs tracking-wide text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
+              <Icon name="carbon:download" class="h-3.5 w-3.5" aria-hidden="true" />总下载
+            </div>
+            <div class="mt-1 flex items-baseline gap-1.5">
+              <span class="text-2xl font-semibold tabular-nums text-foreground" style="font-family: 'Instrument Serif', ui-serif, serif;" :title="formatInt(totals.total)">{{ formatCompact(totals.total) }}</span>
+              <span class="text-xs text-muted-foreground" :title="formatInt(totals.total)">次</span>
+              <span v-if="active === 'total'" class="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">排序中</span>
+            </div>
+          </div>
           <div class="rounded-xl border border-border bg-background/60 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/50">
             <div class="flex items-center gap-1.5 text-xs tracking-wide text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-              <Icon name="carbon:download" class="h-3.5 w-3.5" aria-hidden="true" />近一周
+              <Icon name="carbon:calendar-heat-map" class="h-3.5 w-3.5" aria-hidden="true" />近一周
             </div>
             <div class="mt-1 flex items-baseline gap-1.5">
               <span class="text-2xl font-semibold tabular-nums" style="font-family: 'Instrument Serif', ui-serif, serif;" :title="formatInt(totals.lastWeek)">{{ formatCompact(totals.lastWeek) }}</span>
@@ -213,7 +229,6 @@ const scopeLabel = computed(() => {
           </div>
         </div>
 
-        <!-- Empty -->
         <div
           v-if="!sortedPackages.length"
           class="rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center"
@@ -226,7 +241,6 @@ const scopeLabel = computed(() => {
           </p>
         </div>
 
-        <!-- Grid -->
         <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
           <NpmPackageCard
             v-for="pkg in sortedPackages"
@@ -234,11 +248,11 @@ const scopeLabel = computed(() => {
             :pkg="pkg"
             :max-week="maxWeek"
             :max-month="maxMonth"
+            :max-total="maxTotal"
             :active="active"
           />
         </div>
 
-        <!-- Footnote -->
         <p class="text-xs text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
           数据每小时缓存一次<span v-if="updatedText"> · 更新于 {{ updatedText }}</span> · 来源 registry.npmjs.org 与 api.npmjs.org，点卡片直达 npm。
           <span v-if="pending" class="inline-flex items-center gap-1"><Icon name="carbon:renew" class="h-3 w-3 motion-safe:animate-spin" aria-hidden="true" /> 更新中…</span>
