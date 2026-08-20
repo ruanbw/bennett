@@ -78,6 +78,28 @@ export default defineNuxtConfig({
     serverBundle: {
       collections: ['carbon', 'mdi', 'simple-icons'],
     },
+    clientBundle: {
+      // 扫描源码 + 显式声明：避免 SSR 时 Icon 需走 /api/_nuxt_icon 而报 failed to load
+      scan: true,
+      icons: [
+        'carbon:renew',
+        'carbon:download',
+        'carbon:calendar-heat-map',
+        'carbon:calendar',
+        'carbon:arrow-up-right',
+        'carbon:checkmark',
+        'carbon:information',
+        'carbon:warning',
+        'carbon:error',
+        'carbon:circle-dash',
+        'carbon:close',
+        'carbon:chevron-down',
+        'carbon:chevron-up',
+        'carbon:star-filled',
+        'carbon:user',
+        'carbon:group',
+      ],
+    },
   },
   css: ['~/assets/css/main.css', '~/assets/css/tailwindcss.css'],
   site: {
@@ -109,8 +131,6 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'dns-prefetch', href: 'https://fonts.googleapis.com' },
         { rel: 'dns-prefetch', href: 'https://fonts.gstatic.com' },
-        // 首屏头像预加载提示（降低 LCP）
-        { rel: 'preload', as: 'image', href: '/avatar.jpg', fetchpriority: 'high' as any },
         // 字体：替代 GithubProfileCard 中阻塞渲染的 @import，按需加载 + display=swap
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap' },
       ],
