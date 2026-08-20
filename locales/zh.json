@@ -7,6 +7,17 @@
     "blog": {
       "empty": "暂无文章。",
       "notFound": "文章未找到"
+    },
+    "npm": {
+      "title": "NPM 包下载量",
+      "weekly": "近一周",
+      "monthly": "近一月",
+      "packages": "个公开包",
+      "empty": "暂无公开包",
+      "retry": "重试",
+      "refresh": "刷新",
+      "sortWeek": "按周",
+      "sortMonth": "按月"
     }
   },
   "layouts": {

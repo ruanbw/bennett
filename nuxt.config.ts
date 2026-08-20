@@ -1,10 +1,8 @@
 import process from 'node:process'
 import tailwindcss from '@tailwindcss/vite'
 
-/**
- * 是否为开发环境
- */
-const isDev = process.env.NODE_ENV === 'production'
+const isProd = process.env.NODE_ENV === 'production'
+const isDev = !isProd
 
 // Used by nuxt-i18n to generate correct SEO links (canonical/hreflang).
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL ?? 'http://192.168.0.101:4100'
@@ -50,7 +48,7 @@ export default defineNuxtConfig({
     baseUrl: siteUrl,
     strategy: 'no_prefix',
     langDir: '../locales/',
-    defaultLocale: 'zh-cn',
+    defaultLocale: 'zh',
     locales: [
       { code: 'zh', language: 'zh-CN', name: 'Chinese (简体中文)', file: 'zh.json' },
       { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
@@ -59,7 +57,7 @@ export default defineNuxtConfig({
       useCookie: true,
       cookieKey: 'i18n_redirected',
       redirectOn: 'root', // 或 'no-prefix'
-      fallbackLocale: 'zh-cn',
+      fallbackLocale: 'zh',
     },
   },
   // shadcn: {
@@ -80,9 +78,6 @@ export default defineNuxtConfig({
     serverBundle: {
       collections: ['carbon', 'mdi', 'simple-icons'],
     },
-  },
-  image: {
-    domains: ['avatars.githubusercontent.com'],
   },
   css: ['~/assets/css/main.css', '~/assets/css/tailwindcss.css'],
   site: {
@@ -109,8 +104,15 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon.ico' },
-        { rel: 'preconnect', href: siteUrl, crossorigin: '' },
-        { rel: 'dns-prefetch', href: siteUrl },
+        // Google Fonts 性能优化：preconnect + dns-prefetch 减少握手耗时
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'dns-prefetch', href: 'https://fonts.googleapis.com' },
+        { rel: 'dns-prefetch', href: 'https://fonts.gstatic.com' },
+        // 首屏头像预加载提示（降低 LCP）
+        { rel: 'preload', as: 'image', href: '/avatar.jpg', fetchpriority: 'high' as any },
+        // 字体：替代 GithubProfileCard 中阻塞渲染的 @import，按需加载 + display=swap
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap' },
       ],
       script: [
         {
@@ -127,21 +129,89 @@ export default defineNuxtConfig({
   runtimeConfig: {
     /** 服务器端 GitHub PAT，用于提高 API 限额（可选，对应环境变量 NUXT_GITHUB_TOKEN） */
     githubToken: '',
+    /** NPM 统计：维护者用户名（默认 ruanbw，对应 NUXT_NPM_MAINTAINER） */
+    npmMaintainer: '',
+    /** NPM 组织 scope（可选，如 bennett 对应 @bennett，对应 NUXT_NPM_ORG） */
+    npmOrg: '',
+    /** NPM 白名单，逗号分隔，兜底展示（对应 NUXT_NPM_PACKAGES） */
+    npmPackages: '',
     public: {
       apiBase: '/api',
     },
   },
-  sourcemap: isDev ? { client: true, server: true } : true,
+  // 性能：仅开发环境开启 sourcemap，生产环境关闭以减小体积并避免源码泄露
+  sourcemap: isDev,
+  experimental: {
+    payloadExtraction: true,
+    treeshakeClientOnly: true,
+    renderJsonPayloads: true,
+    inlineRouteRules: true,
+    viewTransition: true,
+    // 性能：客户端组件仅在客户端渲染时才包含其 JS（减少首屏）
+    clientFallback: true,
+  },
+  nitro: {
+    compressPublicAssets: {
+      gzip: true,
+      brotli: true,
+    },
+    minify: true,
+  },
+  // 性能：路由级缓存与预渲染
+  routeRules: {
+    '/': { prerender: true },
+    '/blogs': { prerender: true },
+    '/blogs/**': { prerender: true, isr: 3600 },
+    '/api/github/**': {
+      cache: { maxAge: 60 * 10, swr: true },
+      headers: { 'cache-control': 'public, s-maxage=600, stale-while-revalidate=60' },
+    },
+    '/api/npm/**': {
+      cache: { maxAge: 60 * 60, swr: true },
+      headers: { 'cache-control': 'public, s-maxage=3600, stale-while-revalidate=600' },
+    },
+  },
+  image: {
+    domains: ['avatars.githubusercontent.com'],
+    quality: 80,
+    format: ['avif', 'webp', 'jpeg'],
+    densities: [1, 2],
+    screens: {
+      xs: 320,
+      sm: 640,
+      md: 768,
+      lg: 1024,
+      xl: 1280,
+      xxl: 1536,
+    },
+  },
   vite: {
     optimizeDeps: {
       include: ['pixi.js', 'simplex-noise'],
-    },
-    esbuild: {
-      drop: isDev ? ['console', 'debugger'] : undefined,
+      exclude: ['@nuxt/content'],
     },
     build: {
       sourcemap: isDev,
+      // 性能：pixi 懒加载块约 830k，单独拆包后不计入首屏，阈值放宽至 900 避免误报
+      chunkSizeWarningLimit: 900,
+      cssCodeSplit: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/pixi.js') || id.includes('simplex-noise'))
+              return 'pixi'
+            if (id.includes('node_modules/swiper'))
+              return 'swiper'
+            if (id.includes('node_modules/sweetalert2'))
+              return 'sweetalert2'
+          },
+        },
+      },
     },
+    oxc: {
+      // 性能：生产环境移除 console/debugger
+      ...(isProd ? { drop: ['console', 'debugger'] } : {}),
+    } as any,
     // tailwindcss() 返回的插件类型在当前依赖组合下与 Vite 的类型不完全匹配（纯类型问题）。
     // 这里做类型断言以避免 TS/IDE 报错，不影响运行时行为。
     plugins: tailwindcss() as any,

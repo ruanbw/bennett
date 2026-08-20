@@ -2,21 +2,25 @@
 import { Book } from '@lucide/vue'
 
 // const isDark = useDark()
-
 </script>
 
 <template>
   <header class="flex justify-between min-h-16 items-center px-4">
     <!-- 网站标题、头像 -->
     <NuxtLink to="/" class="transition-colors" aria-label="首页">
-      <img
+      <NuxtImg
         src="/avatar.jpg"
         alt="Bennett"
         width="36"
         height="36"
-        class="h-9 w-9 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
-        loading="eager"
+        sizes="36px"
+        densities="1x 2x"
+        quality="80"
+        format="webp"
+        preload
+        fetchpriority="high"
         decoding="async"
+        class="h-9 w-9 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
       />
     </NuxtLink>
 

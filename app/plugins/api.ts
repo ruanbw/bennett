@@ -10,26 +10,6 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   const api = $fetch.create({
     baseURL: apiBase,
-    onRequest({ options }) {
-      // 确保 headers 对象存在
-      if (!options.headers) {
-        options.headers = new Headers()
-      }
-      // 如果 headers 是 Headers 对象，使用 set 方法；否则转换为 Headers
-      if (options.headers instanceof Headers) {
-        options.headers.set('Authorization', 'Bearer token')
-      }
-      else {
-        const headers = new Headers(options.headers)
-        headers.set('Authorization', 'Bearer token')
-        options.headers = headers
-      }
-    },
-    onResponse({ response }) {
-      // do something with the response
-      console.log('onResponse', response._data)
-      return response._data
-    },
     async onResponseError({ response }) {
       if (response.status === 401) {
         await nuxtApp.runWithContext(() => navigateTo('/login'))
