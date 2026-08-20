@@ -80,10 +80,35 @@ function onResize() {
   addPoints()
 }
 
+const rafId: number | null = null
+let tickerFn: (() => void) | null = null
+let visible = true
+
+function onVisibilityChange() {
+  visible = document.visibilityState === 'visible'
+  if (visible && app?.ticker && tickerFn && !app.ticker.started)
+    app.ticker.start()
+  if (!visible && app?.ticker)
+    app.ticker.stop()
+}
+
 onMounted(async () => {
   if (!rootRef.value) {
     return
   }
+  // 性能：尊重 prefers-reduced-motion，低端机/省电模式跳过重型 Canvas 动效
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    return
+  // 性能：requestIdleCallback 延迟初始化，避免阻塞首屏 LCP/INP
+  const idle = (cb: () => void) => {
+    const ric: any = (window as any).requestIdleCallback
+    if (ric)
+      ric(cb, { timeout: 1500 })
+    else setTimeout(cb, 300)
+  }
+  await new Promise<void>(resolve => idle(resolve))
+  if (!rootRef.value)
+    return
   const [{ Application, Container, Graphics, Sprite }, { createNoise3D }] = await Promise.all([
     import('pixi.js'),
     import('simplex-noise'),
@@ -97,13 +122,16 @@ onMounted(async () => {
   w = window.innerWidth
   h = window.innerHeight
 
+  // 性能：DPR 封顶 2，避免 3x 屏上超大纹理与重绘
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
   app = new ApplicationCtor()
   await app.init({
     backgroundAlpha: 0,
-    antialias: true,
-    resolution: window.devicePixelRatio || 1,
+    antialias: false,
+    resolution: dpr,
     eventMode: 'none',
     autoDensity: true,
+    powerPreference: 'low-power' as any,
   })
 
   rootRef.value.appendChild(app.canvas)
@@ -114,28 +142,46 @@ onMounted(async () => {
   dotTexture = createDotTexture(app)
   addPoints()
 
-  app.ticker.add(() => {
+  tickerFn = () => {
+    if (!visible)
+      return
     const t = Date.now() / 10000
-
     for (const p of points) {
       const rad = getForceOnPoint(p.x, p.y, t)
-      if (!noise3d) {
+      if (!noise3d)
         continue
-      }
       const len = (noise3d(p.x / SCALE, p.y / SCALE, t * 2) + 0.5) * LENGTH
       const nx = p.x + Math.cos(rad) * len
       const ny = p.y + Math.sin(rad) * len
-
       p.sprite.x = nx
       p.sprite.y = ny
       p.sprite.alpha = (Math.abs(Math.cos(rad)) * 0.8 + 0.2) * p.opacity
     }
-  })
-
-  useEventListener(window, 'resize', onResize)
+  }
+  app.ticker.add(tickerFn)
+  // 性能：页面不可见时暂停 ticker，节省 CPU/GPU
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  // 性能：resize 加防抖，避免连续触发 addPoints 与 renderer.resize
+  let resizeTimer: ReturnType<typeof setTimeout> | null = null
+  const onResizeDebounced = () => {
+    if (resizeTimer)
+      clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(onResize, 120)
+  }
+  useEventListener(window, 'resize', onResizeDebounced)
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  if (rafId)
+    cancelAnimationFrame(rafId)
+  if (app && tickerFn) {
+    try {
+      app.ticker.remove(tickerFn)
+    }
+    catch {}
+  }
+  tickerFn = null
   try {
     app?.destroy(true, { children: true, texture: true, textureSource: true })
   }
@@ -150,6 +196,8 @@ onBeforeUnmount(() => {
   ContainerCtor = null
   GraphicsCtor = null
   SpriteCtor = null
+  existingPoints.clear()
+  points.length = 0
 })
 </script>
 

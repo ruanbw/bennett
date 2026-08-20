@@ -1,7 +1,9 @@
 <script lang="ts" setup>
-import AntfuCanvasBackground from '@/components/background/AntfuCanvasBackground.vue'
+import { defineAsyncComponent } from 'vue'
 import Footer from './_components/Footer.vue'
 import Header from './_components/Header.vue'
+// 性能：背景动效按需异步加载，避免 pixi (830k) 阻塞首屏 LCP/INP
+const AntfuCanvasBackground = defineAsyncComponent(() => import('@/components/background/AntfuCanvasBackground.vue'))
 // SEO head generation based on nuxt-i18n.
 // https://i18n.nuxtjs.org/docs/guide/seo
 const route = useRoute()

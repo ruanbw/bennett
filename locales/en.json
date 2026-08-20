@@ -7,6 +7,17 @@
     "blog": {
       "empty": "No posts yet.",
       "notFound": "Post not found"
+    },
+    "npm": {
+      "title": "NPM Downloads",
+      "weekly": "Last week",
+      "monthly": "Last month",
+      "packages": "public packages",
+      "empty": "No public packages",
+      "retry": "Retry",
+      "refresh": "Refresh",
+      "sortWeek": "By week",
+      "sortMonth": "By month"
     }
   },
   "layouts": {

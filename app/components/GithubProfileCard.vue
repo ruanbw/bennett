@@ -120,16 +120,16 @@ function languageHue(name: string) {
         class="space-y-3"
         role="alert"
       >
-        <p class="text-lg font-semibold" style="font-family: 'Instrument Serif', ui-serif, serif;">
+        <p class="text-lg font-semibold">
           暂时读不到这份档案
         </p>
-        <p class="max-w-prose text-sm text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
+        <p class="max-w-prose text-sm text-muted-foreground">
           {{ error?.statusMessage || error?.message || '请稍后再试。' }}
         </p>
         <button
           type="button"
           class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
+
           @click="refresh()"
         >
           重试
@@ -148,15 +148,19 @@ function languageHue(name: string) {
               :alt="`${data.login} 的 GitHub 头像`"
               width="96"
               height="96"
+              sizes="96px"
+              densities="1x 2x"
+              quality="80"
               class="h-20 w-20 rounded-full ring-1 ring-black/5 sm:h-24 sm:w-24 dark:ring-white/10"
               loading="lazy"
               format="webp"
+              :preload="false"
+              :placeholder="[96, 96, 20, 5]"
             />
           </div>
           <div class="min-w-0 flex-1">
             <h2
               class="text-pretty text-2xl leading-tight sm:text-3xl"
-              style="font-family: 'Instrument Serif', ui-serif, serif;"
             >
               {{ displayName }}
             </h2>
@@ -165,7 +169,6 @@ function languageHue(name: string) {
               target="_blank"
               rel="noopener noreferrer"
               class="mt-1 inline-block text-sm text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
-              style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
             >
               @{{ data.login }}
             </a>
@@ -179,21 +182,18 @@ function languageHue(name: string) {
         >
           <h3
             class="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
-            style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
           >
             个人简介
           </h3>
           <p
             v-if="data.bio"
             class="mt-2 max-w-prose text-[15px] leading-relaxed text-foreground/90"
-            style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
           >
             {{ data.bio }}
           </p>
           <p
             v-else
             class="mt-2 text-sm text-muted-foreground"
-            style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
           >
             尚未填写 GitHub 简介。
           </p>
@@ -211,7 +211,6 @@ function languageHue(name: string) {
             >
               <div
                 class="flex items-baseline justify-between gap-3 text-sm"
-                style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
               >
                 <span class="font-medium text-foreground">{{ lang.name }}</span>
                 <span class="shrink-0 tabular-nums text-muted-foreground">{{ lang.percent }}%</span>
@@ -235,7 +234,6 @@ function languageHue(name: string) {
         <!-- 4. 前往 GitHub -->
         <div
           class="flex flex-wrap items-center gap-2"
-          style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
         >
           <a
             :href="data.profileUrl"
@@ -250,7 +248,6 @@ function languageHue(name: string) {
         <!-- 补充：统计与外链（主流程之下） -->
         <div
           class="border-t border-border pt-5 text-sm text-muted-foreground"
-          style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
         >
           <ul
             class="flex flex-wrap gap-x-8 gap-y-2 tabular-nums"
@@ -298,6 +295,5 @@ function languageHue(name: string) {
   </article>
 </template>
 
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
-</style>
+<!-- 性能：移除 scoped @import 阻塞渲染，字体由 nuxt.config head 预连接 + 按需加载；保留回退字体避免 CLS -->
+<style scoped></style>

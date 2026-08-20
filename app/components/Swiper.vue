@@ -1,20 +1,10 @@
 <script setup lang="ts">
-// core version + navigation, pagination modules:
+// Swiper 仅在需要时按需加载，避免首屏打包
 import { Navigation, Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-// import Swiper and modules styles
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
-import 'swiper/css/scrollbar'
-
-function onSwiper() {
-  console.log('swiper')
-}
-
-function onSlideChange() {
-  console.log('slide change')
-}
 </script>
 
 <template>
@@ -33,8 +23,6 @@ function onSlideChange() {
       :slides-per-view="1"
       :space-between="50"
       :modules="[Navigation, Pagination]"
-      @swiper="onSwiper"
-      @slide-change="onSlideChange"
     >
       <SwiperSlide>Slide 1</SwiperSlide>
       <SwiperSlide>Slide 2</SwiperSlide>
