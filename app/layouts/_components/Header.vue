@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Book } from 'lucide-vue-next'
+import { Book } from '@lucide/vue'
 
 // const isDark = useDark()
 
