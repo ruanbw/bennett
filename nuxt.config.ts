@@ -182,6 +182,8 @@ export default defineNuxtConfig({
     '/': { prerender: true },
     '/blogs': { prerender: true },
     '/blogs/**': { prerender: true, isr: 3600 },
+    '/projects': { prerender: true },
+    '/projects/**': { prerender: true, isr: 3600 },
     '/api/github/**': {
       cache: { maxAge: 60 * 10, swr: true },
       headers: { 'cache-control': 'public, s-maxage=600, stale-while-revalidate=60' },

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Book } from '@lucide/vue'
+import { Book, FolderOpen } from '@lucide/vue'
 
 // const isDark = useDark()
 </script>
@@ -36,6 +36,13 @@ import { Book } from '@lucide/vue'
     <!-- 其他功能按钮 -->
     <div class="flex items-center gap-2">
       <nav class="flex items-center gap-2">
+        <NuxtLink
+          to="/projects"
+          class="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="项目"
+        >
+          <FolderOpen class="size-4" />
+        </NuxtLink>
         <NuxtLink
           to="/blogs"
           class="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"

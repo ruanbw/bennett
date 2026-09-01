@@ -19,5 +19,27 @@ export default defineContentConfig({
         date: z.coerce.date(),
       }),
     }),
+    /**
+     * 项目集合：文件位于 content/projects/，站点路径前缀为 /projects（与 app/pages/projects 一致）。
+     * Frontmatter：title、description、url（线上地址）、cover（封面图）、video（可选演示视频）、
+     * images（可选截图列表）、tags（技术栈标签）、date。
+     */
+    projects: defineCollection({
+      type: 'page',
+      source: {
+        include: 'projects/**/*.md',
+        prefix: '/projects',
+      },
+      schema: z.object({
+        title: z.string(),
+        description: z.string(),
+        url: z.string(),
+        cover: z.string(),
+        video: z.string().optional(),
+        images: z.array(z.string()).default([]),
+        tags: z.array(z.string()).default([]),
+        date: z.coerce.date(),
+      }),
+    }),
   },
 })

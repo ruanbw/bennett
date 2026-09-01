@@ -2,11 +2,20 @@
   "pages": {
     "title": {
       "top": "Home",
-      "blog": "Blog"
+      "blog": "Blog",
+      "projects": "Projects"
     },
     "blog": {
       "empty": "No posts yet.",
       "notFound": "Post not found"
+    },
+    "projects": {
+      "empty": "No projects yet.",
+      "notFound": "Project not found",
+      "subtitle": "A look back at some things I have built.",
+      "visit": "Visit site",
+      "demoVideo": "Demo video",
+      "screenshots": "Screenshots"
     },
     "npm": {
       "title": "NPM Downloads",

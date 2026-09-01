@@ -2,11 +2,20 @@
   "pages": {
     "title": {
       "top": "首页",
-      "blog": "博客"
+      "blog": "博客",
+      "projects": "项目"
     },
     "blog": {
       "empty": "暂无文章。",
       "notFound": "文章未找到"
+    },
+    "projects": {
+      "empty": "暂无项目。",
+      "notFound": "项目未找到",
+      "subtitle": "回顾一下我做过的一些东西。",
+      "visit": "访问项目",
+      "demoVideo": "演示视频",
+      "screenshots": "界面截图"
     },
     "npm": {
       "title": "NPM 包下载量",
