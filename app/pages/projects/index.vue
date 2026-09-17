@@ -3,6 +3,22 @@ definePageMeta({
   title: 'pages.title.projects',
 })
 
+useSeoMeta({
+  title: '项目 | Bennett',
+  description: 'Bennett 的开源项目列表，汇总基于 Vue/Nuxt 的实战项目、前端工程化工具与 NPM 包，展示 SSR、性能优化与开发者体验方面的实践成果。',
+  ogType: 'website',
+  ogTitle: '项目 | Bennett',
+  ogDescription: 'Bennett 的开源项目列表，汇总基于 Vue/Nuxt 的实战项目、前端工程化工具与 NPM 包，展示 SSR、性能优化与开发者体验方面的实践成果。',
+  twitterTitle: '项目 | Bennett',
+  twitterDescription: 'Bennett 的开源项目列表，汇总基于 Vue/Nuxt 的实战项目、前端工程化工具与 NPM 包，展示 SSR、性能优化与开发者体验方面的实践成果。',
+})
+
+useHead({
+  link: [
+    { rel: 'canonical', href: 'https://bennett-website.vercel.app/projects' },
+  ],
+})
+
 const { data: projects } = await useAsyncData('projects-list', () =>
   queryCollection('projects').select('title', 'description', 'url', 'cover', 'tags', 'path', 'date').order('date', 'DESC').all())
 

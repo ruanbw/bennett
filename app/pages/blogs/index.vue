@@ -3,6 +3,22 @@ definePageMeta({
   title: 'pages.title.blog',
 })
 
+useSeoMeta({
+  title: '博客 | Bennett',
+  description: 'Bennett 的博客列表，分享前端工程化、Vue/Nuxt 实战、SSR 与性能优化心得，记录开源项目与开发体验的思考。',
+  ogType: 'website',
+  ogTitle: '博客 | Bennett',
+  ogDescription: 'Bennett 的博客列表，分享前端工程化、Vue/Nuxt 实战、SSR 与性能优化心得，记录开源项目与开发体验的思考。',
+  twitterTitle: '博客 | Bennett',
+  twitterDescription: 'Bennett 的博客列表，分享前端工程化、Vue/Nuxt 实战、SSR 与性能优化心得，记录开源项目与开发体验的思考。',
+})
+
+useHead({
+  link: [
+    { rel: 'canonical', href: 'https://bennett-website.vercel.app/blogs' },
+  ],
+})
+
 const { data: posts } = await useAsyncData('blog-list', () => queryCollection('blog').select('title', 'path', 'date').order('date', 'DESC').all())
 
 type BlogListItem = NonNullable<typeof posts.value>[number]

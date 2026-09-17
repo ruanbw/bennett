@@ -5,7 +5,11 @@ const isProd = process.env.NODE_ENV === 'production'
 const isDev = !isProd
 
 // Used by nuxt-i18n to generate correct SEO links (canonical/hreflang).
-const siteUrl = process.env.NUXT_PUBLIC_SITE_URL ?? 'http://192.168.0.101:4100'
+// 生产域名暂定 Vercel：https://bennett-website.vercel.app/
+// 如需覆盖：NUXT_PUBLIC_SITE_URL=https://example.com pnpm build
+const siteUrl = process.env.NUXT_PUBLIC_SITE_URL ?? 'https://bennett-website.vercel.app'
+const siteName = 'Bennett - 前端工程化与 Nuxt 实战'
+const siteDescription = 'Bennett 的个人站：关注前端工程化、Vue/Nuxt 性能优化与开发者体验，分享实战博客与开源项目。'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -42,6 +46,8 @@ export default defineNuxtConfig({
     '@nuxt/image',
     'nuxt-og-image',
     '@nuxtjs/i18n',
+    '@nuxtjs/sitemap',
+    '@nuxtjs/robots',
     'shadcn-nuxt',
   ],
   i18n: {
@@ -104,28 +110,50 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css', '~/assets/css/tailwindcss.css'],
   site: {
     url: siteUrl,
-    name: 'Site Name',
+    name: siteName,
+    description: siteDescription,
+    defaultLocale: 'zh-CN',
+  },
+  sitemap: {
+    sources: ['/api/__sitemap__/urls'],
+    defaults: {
+      changefreq: 'weekly',
+      priority: 0.8,
+    },
+  },
+  robots: {
+    sitemap: [`${siteUrl}/sitemap.xml`],
   },
   app: {
     head: {
+      titleTemplate: '%s · Bennett',
+      htmlAttrs: {
+        lang: 'zh-CN',
+      },
       meta: [
-        { name: 'title', content: 'Site Name' },
-        { name: 'description', content: 'Site Description' },
+        { name: 'description', content: siteDescription },
+        { name: 'keywords', content: 'Bennett,前端,Vue,Nuxt,SSR,性能优化,开源,前端工程化' },
+        { name: 'robots', content: 'index, follow, max-image-preview:large' },
+        { name: 'theme-color', content: '#ffffff' },
+        { name: 'author', content: 'Bennett' },
         // og
-        { property: 'og:title', content: 'Site Name' },
-        { property: 'og:description', content: 'Site Description' },
-        { property: 'og:image', content: '/og-image.png' },
+        { property: 'og:site_name', content: 'Bennett' },
+        { property: 'og:title', content: siteName },
+        { property: 'og:description', content: siteDescription },
+        { property: 'og:image', content: `${siteUrl}/og-image.png` },
         { property: 'og:url', content: siteUrl },
         { property: 'og:type', content: 'website' },
-        // og:twitter
-        { property: 'og:twitter:card', content: 'summary_large_image' },
-        { property: 'og:twitter:title', content: 'Site Name' },
-        { property: 'og:twitter:description', content: 'Site Description' },
-        { property: 'og:twitter:image', content: '/og-image.png' },
-        { property: 'og:twitter:url', content: siteUrl },
+        { property: 'og:locale', content: 'zh_CN' },
+        { property: 'og:locale:alternate', content: 'en_US' },
+        // twitter（注意用 name，不是 property）
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: siteName },
+        { name: 'twitter:description', content: siteDescription },
+        { name: 'twitter:image', content: `${siteUrl}/og-image.png` },
       ],
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon.ico' },
+        { rel: 'alternate', type: 'application/rss+xml', title: `${siteName} RSS`, href: `${siteUrl}/rss.xml` },
         // Google Fonts 性能优化：preconnect + dns-prefetch 减少握手耗时
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
@@ -157,6 +185,10 @@ export default defineNuxtConfig({
     npmPackages: '',
     public: {
       apiBase: '/api',
+      // OgImage 模板（app/components/OgImage/Introduction.takumi.vue）读取的站点信息
+      siteTitle: siteName,
+      siteDescription,
+      siteKeywords: ['前端', 'Vue', 'Nuxt', 'SSR', '性能优化', '开源', '前端工程化'],
     },
   },
   // 性能：仅开发环境开启 sourcemap，生产环境关闭以减小体积并避免源码泄露

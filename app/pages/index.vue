@@ -3,6 +3,47 @@ definePageMeta({
   title: 'pages.title.top',
 })
 
+useSeoMeta({
+  title: 'Bennett - 前端工程化、Vue/Nuxt 实战与开源',
+  description: 'Bennett 的个人网站，专注前端工程化与 Vue/Nuxt 实战，分享 SSR 服务端渲染、性能优化与开发者体验心得，记录开源项目与 NPM 工具库的实践经验。',
+  ogType: 'website',
+  ogTitle: 'Bennett - 前端工程化、Vue/Nuxt 实战与开源',
+  ogDescription: 'Bennett 的个人网站，专注前端工程化与 Vue/Nuxt 实战，分享 SSR 服务端渲染、性能优化与开发者体验心得，记录开源项目与 NPM 工具库的实践经验。',
+  twitterTitle: 'Bennett - 前端工程化、Vue/Nuxt 实战与开源',
+  twitterDescription: 'Bennett 的个人网站，专注前端工程化与 Vue/Nuxt 实战，分享 SSR 服务端渲染、性能优化与开发者体验心得，记录开源项目与 NPM 工具库的实践经验。',
+})
+
+useHead({
+  link: [
+    { rel: 'canonical', href: 'https://bennett-website.vercel.app/' },
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        'name': 'Bennett',
+        'url': 'https://bennett-website.vercel.app/',
+      }),
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        'name': 'Bennett',
+        'url': 'https://bennett-website.vercel.app/',
+        'jobTitle': '前端工程师',
+        'sameAs': [
+          'https://github.com/ruanbw',
+          'https://www.npmjs.com/~ruanbw',
+        ],
+      }),
+    },
+  ],
+})
+
 const { data: recentPosts } = await useAsyncData('home-recent-posts', () =>
   queryCollection('blog').select('title', 'path', 'date', 'description').order('date', 'DESC').limit(3).all())
 
@@ -41,11 +82,11 @@ function fmtDate(v: string | Date) {
           >
             Bennett
             <span class="block text-lg font-normal tracking-normal text-muted-foreground sm:text-xl" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-              造好用的产品，写清楚的博客。
+              造好用的产品，写清楚的博客 — Vue/Nuxt 实战与开源。
             </span>
           </h1>
           <p class="mt-4 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-            关注前端工程化、性能与开发者体验。开源项目累计获得不少 Star，NPM 上也有一些被实际使用的小工具。这里汇总了个人档案、Star 与下载数据，以及最近的写作。
+            关注前端工程化、Vue/Nuxt SSR 与性能优化，分享开发者体验与开源实践。开源项目累计获得不少 Star，NPM 上也有一些被实际使用的小工具。这里汇总了个人档案、Star 与下载数据，以及最近的写作。
           </p>
           <div class="mt-6 flex flex-wrap gap-3">
             <NuxtLink
@@ -183,7 +224,3 @@ function fmtDate(v: string | Date) {
     </div>
   </div>
 </template>
-
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
-</style>

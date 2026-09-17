@@ -1,6 +1,6 @@
 ---
 title: SSR 应用运行时配置热重载：Next.js 与 Nuxt 3 双框架实战方案
-description: SSR 应用运行时配置热重载：Next.js 与 Nuxt 3 双框架实战方案
+description: 详解 SSR 应用运行时配置热重载方案，基于 public/runtime-config.json 与 API 路由实现不停机热更新，结合 Zod 类型校验，分别给出 Next.js 14 与 Nuxt 3 双框架生产级代码，覆盖 Docker 与 K8s 部署，开箱即用。
 date: 2026-04-21
 ---
 
