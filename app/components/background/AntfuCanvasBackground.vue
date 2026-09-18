@@ -1,9 +1,15 @@
 <script setup lang="ts">
+// 性能：pixi 类型必须用 `import type` 显式声明。
+// 若写成 `import('pixi.js').Sprite` 内联类型，打包器会将其提升为运行时静态依赖，
+// 导致 830k 的 pixi 被首屏 modulepreload。用 `import type` 可保证编译期彻底擦除。
+import type { Application, Container, Graphics, Sprite, Texture } from 'pixi.js'
+import type { createNoise3D as createNoise3DFn } from 'simplex-noise'
+
 interface Point {
   x: number
   y: number
   opacity: number
-  sprite: import('pixi.js').Sprite
+  sprite: Sprite
 }
 
 const rootRef = ref<HTMLDivElement | null>(null)
@@ -12,19 +18,19 @@ const SCALE = 200
 const LENGTH = 5
 const SPACING = 15
 
-let noise3d: ReturnType<typeof import('simplex-noise')['createNoise3D']> | null = null
+let noise3d: ReturnType<typeof createNoise3DFn> | null = null
 const existingPoints = new Set<string>()
 const points: Point[] = []
 
 let w = 0
 let h = 0
-let app: import('pixi.js').Application | null = null
-let particles: import('pixi.js').Container | null = null
-let dotTexture: import('pixi.js').Texture | null = null
-let SpriteCtor: typeof import('pixi.js')['Sprite'] | null = null
-let ContainerCtor: typeof import('pixi.js')['Container'] | null = null
-let GraphicsCtor: typeof import('pixi.js')['Graphics'] | null = null
-let ApplicationCtor: typeof import('pixi.js')['Application'] | null = null
+let app: Application | null = null
+let particles: Container | null = null
+let dotTexture: Texture | null = null
+let SpriteCtor: typeof Sprite | null = null
+let ContainerCtor: typeof Container | null = null
+let GraphicsCtor: typeof Graphics | null = null
+let ApplicationCtor: typeof Application | null = null
 
 function getForceOnPoint(x: number, y: number, z: number) {
   if (!noise3d) {
@@ -33,7 +39,7 @@ function getForceOnPoint(x: number, y: number, z: number) {
   return (noise3d(x / SCALE, y / SCALE, z) - 0.5) * 2 * Math.PI
 }
 
-function createDotTexture(rendererApp: import('pixi.js').Application) {
+function createDotTexture(rendererApp: Application) {
   if (!GraphicsCtor) {
     throw new Error('Graphics constructor is not ready')
   }

@@ -49,7 +49,7 @@ function isLikelyGitHubUsername(value: string) {
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(value)
 }
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
   const raw = getRouterParam(event, 'username')
   const username = raw?.trim() ?? ''
 
@@ -80,6 +80,10 @@ export default defineEventHandler(async (event) => {
     ])
 
     const topLanguages = computeTopLanguages(repos)
+
+    // 浏览器与 CDN 缓存 1 小时：与 stars 接口保持一致，保护 GitHub API 限额
+    setHeader(event, 'Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600')
+    setHeader(event, 'CDN-Cache-Control', 'public, max-age=3600')
 
     return {
       login: data.login,
@@ -115,4 +119,14 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Failed to load profile from GitHub',
     })
   }
+}, {
+  // 性能：Nitro 侧缓存 1 小时 + SWR，避免每次访问都打 GitHub API（未配 token 时限额仅 60 次/小时）
+  maxAge: 60 * 60,
+  staleMaxAge: 60 * 60 * 6,
+  group: 'github-profile',
+  name: 'github-profile',
+  getKey: (event) => {
+    const u = getRouterParam(event, 'username')?.trim().toLowerCase() ?? 'unknown'
+    return `github-profile:${u}`
+  },
 })

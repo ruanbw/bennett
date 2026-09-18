@@ -97,7 +97,12 @@ useHead({
             :alt="doc.title"
             class="h-full w-full object-cover object-top"
             loading="eager"
+            fetchpriority="high"
+            preload
             decoding="async"
+            format="webp"
+            quality="80"
+            sizes="100vw"
             density="1x"
           />
         </div>
@@ -142,7 +147,7 @@ useHead({
             class="block aspect-video w-full"
             controls
             playsinline
-            preload="metadata"
+            preload="none"
             :poster="doc.cover"
           />
         </div>
@@ -162,6 +167,9 @@ useHead({
             class="w-full rounded-2xl border border-border shadow-sm"
             loading="lazy"
             decoding="async"
+            format="webp"
+            quality="80"
+            sizes="100vw sm:50vw"
             density="1x"
           />
         </div>
@@ -197,6 +205,9 @@ useHead({
                 class="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
                 loading="lazy"
                 decoding="async"
+                format="webp"
+                quality="80"
+                sizes="100vw sm:33vw"
                 density="1x"
               />
             </div>

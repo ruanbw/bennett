@@ -11,7 +11,10 @@ const { data, pending, error, refresh } = await useFetch<NpmStatsPayload>(
   () => '/api/npm/stats',
   {
     key: 'npm-stats',
-    lazy: props.lazy,
+    // 性能：首屏下方的统计卡片走客户端懒加载，不阻塞 SSR 首字节与 hydration。
+    server: false,
+    lazy: true,
+    immediate: !props.lazy,
   },
 )
 
@@ -261,7 +264,3 @@ const scopeLabel = computed(() => {
     </div>
   </section>
 </template>
-
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
-</style>

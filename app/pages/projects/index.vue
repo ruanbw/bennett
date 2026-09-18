@@ -54,6 +54,9 @@ type ProjectItem = NonNullable<typeof projects.value>[number]
             class="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
             loading="lazy"
             decoding="async"
+            format="webp"
+            quality="80"
+            sizes="100vw sm:50vw lg:33vw"
             density="1x"
           />
         </div>

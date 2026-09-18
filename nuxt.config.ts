@@ -11,6 +11,9 @@ const siteUrl = process.env.NUXT_PUBLIC_SITE_URL ?? 'https://bennett-website.ver
 const siteName = 'Bennett - 前端工程化与 Nuxt 实战'
 const siteDescription = 'Bennett 的个人站：关注前端工程化、Vue/Nuxt 性能优化与开发者体验，分享实战博客与开源项目。'
 
+// Google Fonts：非阻塞加载（preload + print 媒体切换），避免阻塞首屏渲染；display=swap 避免 FOIT
+const googleFontsUrl = 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -159,8 +162,9 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'dns-prefetch', href: 'https://fonts.googleapis.com' },
         { rel: 'dns-prefetch', href: 'https://fonts.gstatic.com' },
-        // 字体：替代 GithubProfileCard 中阻塞渲染的 @import，按需加载 + display=swap
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap' },
+        // 字体：非阻塞加载 —— preload 预热 + media=print 按需应用，避免阻塞首屏渲染
+        { rel: 'preload', as: 'style', href: googleFontsUrl },
+        { rel: 'stylesheet', href: googleFontsUrl, media: 'print', onload: 'this.media=\'all\'' },
       ],
       script: [
         {
@@ -171,7 +175,7 @@ export default defineNuxtConfig({
     },
     pageTransition: {
       name: 'page',
-      mode: 'out-in',
+      // 性能：去掉 out-in，避免新页面等待旧页面 300ms 离场动画，体感更快
     },
   },
   runtimeConfig: {
@@ -246,21 +250,12 @@ export default defineNuxtConfig({
     },
     build: {
       sourcemap: isDev,
-      // 性能：pixi 懒加载块约 830k，单独拆包后不计入首屏，阈值放宽至 900 避免误报
+      // 性能：pixi（约 830k）只在背景动效初始化时按需加载，不计入首屏；
+      // 注意不要用 manualChunks 强行拆 pixi——实测 Rolldown 会把动态 import 的 helper 经由该分包 re-export，
+      // 在背景块与 pixi 块之间制造静态依赖边，导致首屏 modulepreload 整个 pixi。默认异步分包无此问题。
+      // 阈值放宽至 900 只是为了屏蔽该已知懒加载大块的警告。
       chunkSizeWarningLimit: 900,
       cssCodeSplit: true,
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('node_modules/pixi.js') || id.includes('simplex-noise'))
-              return 'pixi'
-            if (id.includes('node_modules/swiper'))
-              return 'swiper'
-            if (id.includes('node_modules/sweetalert2'))
-              return 'sweetalert2'
-          },
-        },
-      },
     },
     oxc: {
       // 性能：生产环境移除 console/debugger

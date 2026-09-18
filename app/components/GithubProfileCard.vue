@@ -41,7 +41,11 @@ const { data, pending, error, refresh } = await useFetch<GithubProfilePayload>(
   () => `/api/github/${encodeURIComponent(sanitized.value)}`,
   {
     key: () => `github-profile:${sanitized.value.toLowerCase()}`,
-    lazy: props.lazy,
+    // 性能：首屏下方的统计卡片走客户端懒加载，不阻塞 SSR 首字节与 hydration；
+    // 预渲染时直接输出骨架屏，构建也不再依赖 GitHub 接口可用性。
+    server: false,
+    lazy: true,
+    immediate: !props.lazy,
     watch: [sanitized],
   },
 )
