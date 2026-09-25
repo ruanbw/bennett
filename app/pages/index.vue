@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { formatDate } from '~/lib/utils'
+
 definePageMeta({
   title: 'pages.title.top',
 })
@@ -44,183 +46,358 @@ useHead({
   ],
 })
 
+/* ---------- 数据 ---------- */
+
+// 01 作品：最近 3 个实战项目，与 /projects 同源
+const { data: projects } = await useAsyncData('home-projects', () =>
+  queryCollection('projects')
+    .select('title', 'description', 'cover', 'tags', 'path')
+    .order('date', 'DESC')
+    .limit(3)
+    .all())
+
+// 02 写作：最近 3 篇文章
 const { data: recentPosts } = await useAsyncData('home-recent-posts', () =>
   queryCollection('blog').select('title', 'path', 'date', 'description').order('date', 'DESC').limit(3).all())
 
-function fmtDate(v: string | Date) {
-  try {
-    return new Date(v).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-  }
-  catch { return String(v) }
+interface GithubProfilePayload {
+  login: string
+  name: string | null
+  bio: string | null
+  avatarUrl: string
+  profileUrl: string
+  location: string | null
+  publicRepos: number
+  followers: number
+  topLanguages: { name: string, percent: number }[]
 }
+
+interface GithubStarsPayload {
+  totalStars: number
+  totalRepos: number
+  updatedAt: string
+}
+
+interface NpmStatsPayload {
+  maintainer: string
+  updatedAt: string
+  totals: { packageCount: number, lastWeek: number, lastMonth: number, total: number }
+}
+
+// 03 开源：三个接口均走客户端懒加载，不阻塞 SSR 首字节与 hydration
+const GITHUB = 'ruanbw'
+const profileOpts = { server: false, lazy: true } as const
+
+const { data: ghProfile } = await useFetch<GithubProfilePayload>(
+  () => `/api/github/${GITHUB}`,
+  { ...profileOpts, key: 'home-github-profile' },
+)
+
+const { data: ghStars, refresh: refreshStars } = await useFetch<GithubStarsPayload>(
+  () => `/api/github/${GITHUB}/stars`,
+  { ...profileOpts, key: 'home-github-stars' },
+)
+
+const { data: npmStats, refresh: refreshNpm } = await useFetch<NpmStatsPayload>(
+  () => '/api/npm/stats',
+  { ...profileOpts, key: 'home-npm-stats' },
+)
+
+const refreshing = ref(false)
+async function refreshAll() {
+  refreshing.value = true
+  try {
+    await Promise.all([refreshStars(), refreshNpm()])
+  }
+  finally {
+    refreshing.value = false
+  }
+}
+
+/* ---------- 展示辅助 ---------- */
+
+function fmtInt(n: number) {
+  return new Intl.NumberFormat(undefined).format(n)
+}
+
+function fmtCompact(n: number) {
+  return new Intl.NumberFormat(undefined, {
+    notation: n >= 10000 ? 'compact' : 'standard',
+    maximumFractionDigits: 1,
+  }).format(n)
+}
+
+const topLanguages = computed(() => (ghProfile.value?.topLanguages ?? []).slice(0, 3).map(l => l.name).join(' · '))
+
+const statsUpdated = computed(() => {
+  const raw = npmStats.value?.updatedAt || ghStars.value?.updatedAt
+  if (!raw)
+    return ''
+  try {
+    return new Date(raw).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+  catch { return '' }
+})
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl px-4 pb-10 pt-2 sm:px-6 sm:pb-12 sm:pt-4">
-    <!-- Hero: 已去重，右侧不再放头像/简介，避免与下方 GithubProfileCard 重复 -->
-    <section class="relative overflow-hidden rounded-[28px] border border-border bg-card shadow-sm">
-      <div
-        class="pointer-events-none absolute inset-0 opacity-[0.55] dark:opacity-40"
-        style="background:
-          radial-gradient(900px 520px at 8% -10%, oklch(0.78 0.09 250 / 0.18), transparent 56%),
-          radial-gradient(820px 480px at 96% 0%, oklch(0.72 0.13 35 / 0.14), transparent 58%),
-          linear-gradient(to bottom, color-mix(in oklch, var(--border) 28%, transparent), transparent 42%);"
-      />
-      <div
-        class="pointer-events-none absolute inset-0 opacity-[0.08] dark:opacity-[0.06]"
-        style="background-image: linear-gradient(color-mix(in oklch, var(--foreground) 16%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklch, var(--foreground) 16%, transparent) 1px, transparent 1px); background-size: 22px 22px;"
-      />
-      <div class="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-12 lg:items-center lg:p-10">
-        <div class="lg:col-span-7">
-          <div class="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
-            <span class="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_color-mix(in_oklch,var(--color-emerald-500)_18%,transparent)]" aria-hidden="true" />
-            Product-minded Engineer · Open Source
-          </div>
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <!-- ══ Hero：纯排版，无卡片无边框 ══ -->
+    <section class="border-b border-border pb-16 pt-14 sm:pb-24 sm:pt-24">
+      <div class="rise rise-1 flex items-center gap-2.5">
+        <span class="relative flex size-2" aria-hidden="true">
+          <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/60 motion-reduce:animate-none" />
+          <span class="relative inline-flex size-2 rounded-full bg-emerald-500" />
+        </span>
+        <span class="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Available for work</span>
+      </div>
+
+      <div class="mt-8 grid gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
+        <div class="lg:col-span-8">
           <h1
-            class="mt-4 text-pretty text-[30px] font-semibold leading-[0.95] tracking-tight sm:text-[42px] lg:text-[48px]"
-            style="font-family: 'Instrument Serif', ui-serif, serif;"
+            class="rise rise-2 font-display text-balance text-[clamp(2.6rem,8.5vw,5.25rem)] leading-[1.04] tracking-[-0.02em] sm:leading-[0.92]"
           >
-            Bennett
-            <span class="block text-lg font-normal tracking-normal text-muted-foreground sm:text-xl" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-              造好用的产品，写清楚的博客 — Vue/Nuxt 实战与开源。
-            </span>
+            造好用的产品，<br>
+            <span class="italic text-muted-foreground">写清楚的博客。</span>
           </h1>
-          <p class="mt-4 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-            关注前端工程化、Vue/Nuxt SSR 与性能优化，分享开发者体验与开源实践。开源项目累计获得不少 Star，NPM 上也有一些被实际使用的小工具。这里汇总了个人档案、Star 与下载数据，以及最近的写作。
+          <p class="rise rise-3 mt-8 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground">
+            前端工程化、Vue/Nuxt SSR 与性能优化。做过视频点播平台、Telegram Bot
+            工具链和知识库系统，也把踩过的坑写成了文章。
           </p>
-          <div class="mt-6 flex flex-wrap gap-3">
+
+          <div class="rise rise-4 mt-10 flex flex-wrap items-center gap-x-8 gap-y-3">
             <NuxtLink
-              to="/blogs"
-              class="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
+              to="/projects"
+              class="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground"
             >
-              看看博客
-              <Icon name="carbon:arrow-right" class="ml-1.5 size-4" aria-hidden="true" />
+              <span class="border-b border-foreground/30 pb-0.5 transition-colors group-hover:border-foreground">查看作品</span>
+              <Icon name="carbon:arrow-right" class="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            </NuxtLink>
+            <NuxtLink to="/blogs" class="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <span class="border-b border-foreground/30 pb-0.5 transition-colors group-hover:border-foreground">写点东西</span>
+              <Icon name="carbon:arrow-right" class="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </NuxtLink>
             <a
               href="https://github.com/ruanbw"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex h-10 items-center justify-center rounded-full border border-border bg-background px-5 text-sm font-medium transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
+              class="group inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Icon name="carbon:logo-github" class="mr-1.5 size-4" aria-hidden="true" />
-              GitHub
-            </a>
-            <a
-              href="https://www.npmjs.com/~ruanbw"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex h-10 items-center justify-center rounded-full border border-border bg-background px-5 text-sm font-medium transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
-            >
-              NPM
+              <span class="border-b border-muted-foreground/30 pb-0.5 transition-colors group-hover:border-foreground">GitHub</span>
+              <Icon name="carbon:arrow-up-right" class="size-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
             </a>
           </div>
-          <div class="mt-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-3 py-1">
-              <Icon name="carbon:location" class="size-3.5" aria-hidden="true" /> China
-            </span>
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-3 py-1">
-              <Icon name="carbon:code" class="size-3.5" aria-hidden="true" /> TypeScript / Vue / Nuxt
-            </span>
-            <NuxtLink to="/demos/components" class="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 hover:bg-muted/50">
-              Demos
-              <Icon name="carbon:arrow-up-right" class="size-3" aria-hidden="true" />
-            </NuxtLink>
-          </div>
         </div>
-        <div class="lg:col-span-5">
-          <div class="relative mx-auto max-w-sm lg:ml-auto">
-            <div class="absolute -inset-3 -z-10 rounded-[28px] bg-gradient-to-br from-violet-500/10 via-sky-500/10 to-amber-500/10 blur-2xl" aria-hidden="true" />
-            <div class="rounded-[22px] border border-border bg-background/70 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:p-5">
-              <div class="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-                Explore
-              </div>
-              <p class="mt-2 text-sm leading-relaxed text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-                往下是档案、Star 与 NPM 数据，支持刷新与缓存。先挑一个入口进去也行。
-              </p>
-              <div class="mt-4 grid gap-2">
-                <NuxtLink to="/blogs" class="group flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-background">
-                  <span class="flex items-center gap-2 text-sm font-medium"><Icon name="carbon:book" class="size-4 text-muted-foreground" aria-hidden="true" /> 博客</span>
-                  <Icon name="carbon:arrow-right" class="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-                </NuxtLink>
-                <a href="https://github.com/ruanbw" target="_blank" rel="noopener noreferrer" class="group flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-background">
-                  <span class="flex items-center gap-2 text-sm font-medium"><Icon name="carbon:logo-github" class="size-4 text-muted-foreground" aria-hidden="true" /> GitHub</span>
-                  <Icon name="carbon:arrow-up-right" class="size-4 text-muted-foreground" aria-hidden="true" />
-                </a>
-                <a href="https://www.npmjs.com/~ruanbw" target="_blank" rel="noopener noreferrer" class="group flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-background">
-                  <span class="flex items-center gap-2 text-sm font-medium"><Icon name="carbon:package" class="size-4 text-muted-foreground" aria-hidden="true" /> NPM</span>
-                  <Icon name="carbon:arrow-up-right" class="size-4 text-muted-foreground" aria-hidden="true" />
-                </a>
-              </div>
-              <div class="mt-4 flex flex-wrap gap-1.5">
-                <span class="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">每小时缓存</span>
-                <span class="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">可刷新</span>
-              </div>
-            </div>
+
+        <!-- 右侧竖排 meta，替代原来的 Explore 卡片 -->
+        <dl class="rise rise-4 flex flex-col gap-5 text-sm lg:col-span-4 lg:items-end lg:text-right">
+          <div>
+            <dt class="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+              Based in
+            </dt>
+            <dd class="mt-1.5 text-foreground">
+              {{ ghProfile?.location || 'China' }}
+            </dd>
           </div>
-        </div>
+          <div>
+            <dt class="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+              Stack
+            </dt>
+            <dd class="mt-1.5 text-foreground">
+              {{ topLanguages || 'TypeScript · Vue · Nuxt' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+              Also on
+            </dt>
+            <dd class="mt-1.5 flex gap-4 lg:justify-end">
+              <a href="https://www.npmjs.com/~ruanbw" target="_blank" rel="noopener noreferrer" class="text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground">npm</a>
+              <NuxtLink to="/demos/components" class="text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground">
+                demos
+              </NuxtLink>
+            </dd>
+          </div>
+        </dl>
       </div>
     </section>
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-12">
-      <div class="lg:col-span-5">
-        <GithubProfileCard username="ruanbw" />
-      </div>
-      <div class="lg:col-span-7">
-        <GithubTotalStars username="ruanbw" />
-      </div>
-      <div class="lg:col-span-12">
-        <NpmDownloadsSection />
-      </div>
-      <section class="lg:col-span-12 rounded-2xl border border-border bg-card shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-3 p-6 sm:p-8 pb-4">
-          <div>
-            <h2 class="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-              最近写作
-            </h2>
-            <p class="mt-1 text-sm text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-              挑了最新的 3 篇，先看一篇也好。
-            </p>
-          </div>
-          <NuxtLink
-            to="/blogs"
-            class="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-background px-3 text-xs font-medium hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style="font-family: 'DM Sans', ui-sans-serif, system-ui;"
-          >
-            全部博客
-            <Icon name="carbon:arrow-right" class="size-3.5" aria-hidden="true" />
+    <!-- ══ 01 作品 ══ -->
+    <section aria-labelledby="section-work">
+      <div class="pt-16 sm:pt-20">
+        <SectionHeading id="section-work" index="01" title="Selected work">
+          <NuxtLink to="/projects" class="group inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+            全部项目
+            <Icon name="carbon:arrow-right" class="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </NuxtLink>
-        </div>
-        <div v-if="recentPosts?.length" class="grid gap-3 px-6 pb-6 sm:px-8 sm:pb-8 sm:grid-cols-3">
+        </SectionHeading>
+      </div>
+
+      <div v-if="projects?.length" class="grid gap-x-8 gap-y-12 pt-10 sm:grid-cols-2 lg:grid-cols-3">
+        <ProjectEntry
+          v-for="project in projects"
+          :key="project.path"
+          :project="project"
+        />
+      </div>
+      <p v-else class="pt-10 text-sm text-muted-foreground">
+        暂无项目。
+      </p>
+    </section>
+
+    <!-- ══ 02 写作 ══ -->
+    <section aria-labelledby="section-writing" class="mt-20 sm:mt-28">
+      <SectionHeading id="section-writing" index="02" title="Writing">
+        <NuxtLink to="/blogs" class="group inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+          全部文章
+          <Icon name="carbon:arrow-right" class="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        </NuxtLink>
+      </SectionHeading>
+
+      <ul v-if="recentPosts?.length" class="mt-2">
+        <li v-for="post in recentPosts" :key="post.path" class="border-b border-border/70 last:border-b-0">
           <NuxtLink
-            v-for="post in recentPosts"
-            :key="post.path"
             :to="post.path"
-            class="group flex flex-col gap-2 rounded-xl border border-border bg-background/60 p-4 backdrop-blur transition-colors hover:bg-background hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="group grid gap-1 py-7 transition-opacity hover:opacity-100 sm:grid-cols-12 sm:items-baseline sm:gap-6 sm:opacity-85"
           >
-            <div class="text-xs text-muted-foreground" style="font-family: 'DM Sans', ui-sans-serif, system-ui;">
-              {{ fmtDate(post.date as any) }}
+            <time :datetime="new Date(post.date as any).toISOString()" class="text-xs tabular-nums text-muted-foreground sm:col-span-2">
+              {{ formatDate(post.date as any) }}
+            </time>
+            <div class="sm:col-span-10">
+              <h3 class="font-display text-[26px] leading-snug">
+                {{ post.title }}
+              </h3>
+              <p v-if="post.description" class="mt-1.5 max-w-[62ch] text-sm leading-relaxed text-muted-foreground">
+                {{ post.description }}
+              </p>
             </div>
-            <div class="line-clamp-2 text-sm font-semibold leading-snug group-hover:underline underline-offset-4">
-              {{ post.title }}
-            </div>
-            <div v-if="post.description" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-              {{ post.description }}
-            </div>
-            <span class="mt-auto inline-flex items-center gap-1 pt-2 text-xs font-medium text-muted-foreground group-hover:text-foreground">
-              阅读
-              <Icon name="carbon:arrow-up-right" class="size-3" aria-hidden="true" />
-            </span>
           </NuxtLink>
+        </li>
+      </ul>
+      <p v-else class="pt-10 text-sm text-muted-foreground">
+        暂无文章。
+      </p>
+    </section>
+
+    <!-- ══ 03 开源 ══ -->
+    <section aria-labelledby="section-oss" class="mt-20 pb-20 sm:mt-28 sm:pb-28">
+      <SectionHeading id="section-oss" index="03" title="Open source" />
+
+      <div class="flex flex-col gap-8 pt-8 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex items-center gap-4">
+          <NuxtImg
+            v-if="ghProfile?.avatarUrl"
+            :src="ghProfile.avatarUrl"
+            :alt="`${ghProfile.login} 的 GitHub 头像`"
+            width="56"
+            height="56"
+            sizes="56px"
+            densities="1x 2x"
+            quality="80"
+            format="webp"
+            loading="lazy"
+            decoding="async"
+            class="size-14 rounded-full object-cover"
+          />
+          <div v-else class="size-14 rounded-full bg-muted" />
+          <div class="min-w-0">
+            <p class="font-display truncate text-[22px] leading-tight">
+              {{ ghProfile?.name || 'Bennett' }}
+            </p>
+            <a
+              :href="ghProfile?.profileUrl || 'https://github.com/ruanbw'"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
+            >@{{ ghProfile?.login || 'ruanbw' }}</a>
+          </div>
         </div>
-        <div v-else class="px-6 pb-6 sm:px-8 sm:pb-8">
-          <p class="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-            暂无文章。
-          </p>
-        </div>
-      </section>
-    </div>
+
+        <!-- 一行式指标，取代原来的两大统计卡片 -->
+        <dl class="flex flex-wrap gap-x-10 gap-y-5 sm:justify-end">
+          <div class="min-w-24">
+            <dt class="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+              <Icon name="carbon:star-filled" class="size-3 text-amber-500" aria-hidden="true" />Stars
+            </dt>
+            <dd class="mt-1.5 font-display text-2xl tabular-nums">
+              {{ ghStars ? fmtInt(ghStars.totalStars) : '—' }}
+            </dd>
+          </div>
+          <div class="min-w-24">
+            <dt class="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+              <Icon name="carbon:download" class="size-3" aria-hidden="true" />NPM 下载
+            </dt>
+            <dd class="mt-1.5 font-display text-2xl tabular-nums">
+              {{ npmStats ? fmtCompact(npmStats.totals.total) : '—' }}
+            </dd>
+          </div>
+          <div class="min-w-20">
+            <dt class="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+              公开包
+            </dt>
+            <dd class="mt-1.5 font-display text-2xl tabular-nums">
+              {{ npmStats ? fmtInt(npmStats.totals.packageCount) : '—' }}
+            </dd>
+          </div>
+          <div class="min-w-20">
+            <dt class="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+              仓库
+            </dt>
+            <dd class="mt-1.5 font-display text-2xl tabular-nums">
+              {{ ghProfile ? fmtInt(ghProfile.publicRepos) : '—' }}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border/70 pt-5 text-[11px] text-muted-foreground/80">
+        <p>
+          仅统计公开仓库，fork 不计入<span v-if="statsUpdated"> · 数据缓存每小时更新</span>
+        </p>
+        <button
+          type="button"
+          class="group inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          @click="refreshAll"
+        >
+          <Icon
+            name="carbon:renew"
+            class="size-3"
+            :class="refreshing ? 'motion-safe:animate-spin' : 'group-hover:rotate-180 motion-reduce:group-hover:rotate-0'"
+            aria-hidden="true"
+          />
+          {{ refreshing ? '更新中' : '刷新数据' }}
+        </button>
+      </div>
+    </section>
   </div>
 </template>
+
+<style scoped>
+/* 首屏逐段淡入：只在支持动效的设备上生效 */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.15s; }
+.rise-3 { animation-delay: 0.25s; }
+.rise-4 { animation-delay: 0.35s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+}
+</style>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { formatDate } from '~/lib/utils'
+
 definePageMeta({
   title: 'pages.title.projects',
 })
@@ -24,7 +26,7 @@ const publishedTime = doc.value.date ? new Date(doc.value.date).toISOString() : 
 
 // 相关项目：同集合按时间倒序取 3 个（排除当前）
 const { data: relatedProjects } = await useAsyncData(`project-related${contentPath}`, () =>
-  queryCollection('projects').select('title', 'description', 'cover', 'path', 'date').order('date', 'DESC').all())
+  queryCollection('projects').select('title', 'description', 'path', 'date').order('date', 'DESC').all())
 const related = computed(() => (relatedProjects.value ?? []).filter(p => p.path !== contentPath).slice(0, 3))
 
 useSeoMeta({
@@ -77,71 +79,79 @@ useHead({
 
 <template>
   <PageContainer v-if="doc">
-    <nav aria-label="面包屑" class="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground">
-      <NuxtLink to="/" class="hover:text-foreground hover:underline underline-offset-4">
+    <nav
+      aria-label="面包屑"
+      class="flex items-center gap-1.5 pt-10 text-xs text-muted-foreground sm:pt-14"
+    >
+      <NuxtLink to="/" class="transition-colors hover:text-foreground">
         首页
       </NuxtLink>
-      <span aria-hidden="true">/</span>
-      <NuxtLink to="/projects" class="hover:text-foreground hover:underline underline-offset-4">
+      <span aria-hidden="true" class="text-muted-foreground/40">/</span>
+      <NuxtLink to="/projects" class="transition-colors hover:text-foreground">
         项目
       </NuxtLink>
-      <span aria-hidden="true">/</span>
-      <span class="line-clamp-1 max-w-[40ch] text-foreground" aria-current="page">{{ doc.title }}</span>
     </nav>
-    <article>
-      <!-- Hero -->
-      <header class="overflow-hidden rounded-[28px] border border-border bg-card shadow-sm">
-        <div class="aspect-[21/9] w-full overflow-hidden bg-muted/30">
-          <NuxtImg
-            :src="doc.cover"
-            :alt="doc.title"
-            class="h-full w-full object-cover object-top"
-            loading="eager"
-            fetchpriority="high"
-            preload
-            decoding="async"
-            format="webp"
-            quality="80"
-            sizes="100vw"
-            density="1x"
-          />
-        </div>
-        <div class="p-6 sm:p-8">
-          <h1 class="text-3xl font-semibold tracking-tight text-foreground">
+
+    <article class="mt-8 sm:mt-10">
+      <!-- 封面：无边框无圆角，铺满内容栏 -->
+      <div class="aspect-[21/9] w-full overflow-hidden bg-muted/30">
+        <NuxtImg
+          :src="doc.cover"
+          :alt="doc.title"
+          width="1600"
+          height="686"
+          class="h-full w-full object-cover object-top"
+          loading="eager"
+          fetchpriority="high"
+          preload
+          decoding="async"
+          format="webp"
+          quality="80"
+          sizes="100vw"
+        />
+      </div>
+
+      <!-- 标题区 -->
+      <header class="mt-10 grid gap-8 border-b border-border pb-10 lg:grid-cols-12 lg:items-end">
+        <div class="lg:col-span-8">
+          <h1
+            class="font-display text-balance text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.02] tracking-[-0.02em]"
+          >
             {{ doc.title }}
           </h1>
-          <p class="mt-2 max-w-[60ch] text-muted-foreground">
+          <p class="mt-6 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground">
             {{ doc.description }}
           </p>
-          <div class="mt-4 flex flex-wrap items-center gap-3">
-            <a
-              :href="doc.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
+        </div>
+        <div class="flex flex-col gap-6 lg:col-span-4 lg:items-end lg:text-right">
+          <a
+            :href="doc.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground"
+          >
+            <span class="border-b border-foreground/30 pb-0.5 transition-colors group-hover:border-foreground">
               {{ $t('pages.projects.visit') }}
-              <Icon name="carbon:arrow-up-right" class="size-4" aria-hidden="true" />
-            </a>
-            <div v-if="doc.tags?.length" class="flex flex-wrap gap-1.5">
-              <span
-                v-for="tag in doc.tags"
-                :key="tag"
-                class="rounded-full border border-border bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground"
-              >
-                {{ tag }}
-              </span>
-            </div>
-          </div>
+            </span>
+            <Icon
+              name="carbon:arrow-up-right"
+              class="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </a>
+          <p
+            v-if="doc.tags?.length"
+            class="max-w-[36ch] font-mono text-[11px] uppercase leading-relaxed tracking-wider text-muted-foreground/70"
+          >
+            {{ doc.tags.join(' / ') }}
+          </p>
         </div>
       </header>
 
       <!-- 演示视频 -->
-      <section v-if="doc.video" class="mt-8">
-        <h2 class="mb-3 text-lg font-semibold tracking-tight text-foreground">
-          {{ $t('pages.projects.demoVideo') }}
-        </h2>
-        <div class="overflow-hidden rounded-2xl border border-border bg-black shadow-sm">
+      <section v-if="doc.video" class="mt-16">
+        <SectionHeading index="01" :title="$t('pages.projects.demoVideo')" />
+        <div class="mt-8 overflow-hidden bg-black">
           <video
             :src="doc.video"
             class="block aspect-video w-full"
@@ -154,68 +164,72 @@ useHead({
       </section>
 
       <!-- 截图画廊 -->
-      <section v-if="doc.images?.length" class="mt-8">
-        <h2 class="mb-3 text-lg font-semibold tracking-tight text-foreground">
-          {{ $t('pages.projects.screenshots') }}
-        </h2>
-        <div class="grid gap-4 sm:grid-cols-2">
+      <section v-if="doc.images?.length" class="mt-16">
+        <SectionHeading index="02" :title="$t('pages.projects.screenshots')" />
+        <div class="mt-8 grid gap-6 sm:grid-cols-2">
           <NuxtImg
             v-for="(img, i) in doc.images"
             :key="img"
             :src="img"
             :alt="`${doc.title} screenshot ${i + 1}`"
-            class="w-full rounded-2xl border border-border shadow-sm"
+            width="900"
+            height="600"
+            class="w-full bg-muted/30"
             loading="lazy"
             decoding="async"
             format="webp"
             quality="80"
             sizes="100vw sm:50vw"
-            density="1x"
           />
         </div>
       </section>
 
       <!-- 正文 -->
-      <section class="mt-8">
-        <div class="prose prose-neutral max-w-none dark:prose-invert prose-pre:bg-muted prose-pre:text-foreground">
+      <section class="mt-16">
+        <SectionHeading index="03" title="Overview" label="项目说明" />
+        <div
+          class="prose prose-neutral mt-8 max-w-[68ch] dark:prose-invert prose-pre:bg-muted prose-pre:text-foreground"
+        >
           <ContentRenderer :value="doc" />
         </div>
       </section>
     </article>
 
-    <section v-if="related.length" class="mt-12 border-t border-border pt-8">
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-semibold tracking-tight text-foreground">
-          相关项目
-        </h2>
-        <NuxtLink to="/projects" class="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline underline-offset-4">
+    <section v-if="related.length" class="mt-20 sm:mt-24">
+      <SectionHeading index="—" title="Related" label="相关项目">
+        <NuxtLink
+          to="/projects"
+          class="group inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
           全部项目
+          <Icon
+            name="carbon:arrow-right"
+            class="size-3.5 transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
         </NuxtLink>
-      </div>
-      <ul class="grid gap-4 sm:grid-cols-3">
-        <li v-for="project in related" :key="project.path">
+      </SectionHeading>
+      <ul class="mt-2">
+        <li
+          v-for="project in related"
+          :key="project.path"
+          class="border-b border-border/70 last:border-b-0"
+        >
           <NuxtLink
             :to="project.path"
-            class="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-colors hover:shadow-md"
+            class="group grid gap-1 py-6 transition-opacity hover:opacity-100 sm:grid-cols-12 sm:items-baseline sm:gap-6 sm:opacity-85"
           >
-            <div class="relative aspect-[16/9] overflow-hidden bg-muted/30">
-              <NuxtImg
-                :src="project.cover"
-                :alt="project.title"
-                class="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
-                loading="lazy"
-                decoding="async"
-                format="webp"
-                quality="80"
-                sizes="100vw sm:33vw"
-                density="1x"
-              />
-            </div>
-            <div class="flex flex-1 flex-col gap-1 p-4">
-              <div class="line-clamp-1 text-sm font-semibold text-foreground group-hover:underline underline-offset-4">
+            <time
+              :datetime="new Date(project.date as string | Date).toISOString()"
+              class="text-xs tabular-nums text-muted-foreground sm:col-span-2"
+            >
+              {{ formatDate(project.date as string | Date) }}
+            </time>
+            <div class="sm:col-span-10">
+              <h3 class="font-display text-xl leading-snug">
                 {{ project.title }}
-              </div>
-              <p class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+              </h3>
+              <p class="mt-1.5 max-w-[62ch] text-sm leading-relaxed text-muted-foreground">
                 {{ project.description }}
               </p>
             </div>
@@ -223,5 +237,7 @@ useHead({
         </li>
       </ul>
     </section>
+
+    <div class="h-20 sm:h-28" />
   </PageContainer>
 </template>

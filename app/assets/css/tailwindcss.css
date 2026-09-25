@@ -5,6 +5,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* 编辑排版字体：Instrument Serif 用于展示级标题，DM Sans 用于正文与 UI。
+   定义在 @theme 之外，绕开上面 --font-* 的 Roboto 占位（font-serif 目前解析不到衬线体）。 */
+@utility font-display {
+  font-family: 'Instrument Serif', ui-serif, serif;
+}
+
+@utility font-ui {
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  /* 站点已加载 DM Sans，统一正文族；中文按 fallback 走系统字体 */
+  body {
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
 /* tailwindcss v4 字体配置 */
 @theme {
   --font-display: "Roboto", "sans-serif";
