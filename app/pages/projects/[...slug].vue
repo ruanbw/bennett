@@ -55,7 +55,8 @@ useHead({
         '@type': 'CreativeWork',
         'name': doc.value.title,
         'description': doc.value.description,
-        'url': doc.value.url,
+        // url 可选：未公开上架的项目（如仅内部/审核中的 App）不编造外链，直接不渲染入口
+        'url': doc.value.url || undefined,
         'image': coverImage,
         'datePublished': publishedTime,
         'author': { '@type': 'Person', 'name': 'Bennett' },
@@ -125,6 +126,7 @@ useHead({
         </div>
         <div class="flex flex-col gap-6 lg:col-span-4 lg:items-end lg:text-right">
           <a
+            v-if="doc.url"
             :href="doc.url"
             target="_blank"
             rel="noopener noreferrer"
