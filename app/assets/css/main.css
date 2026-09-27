@@ -13,3 +13,12 @@
   opacity: 0;
   transform: translateY(-8px);
 }
+
+/* 正文里的宽表格在窄屏自行横向滚动。
+   typography 插件只给表格设了 width:100%，内容最小宽度仍会撑破 .prose 容器，
+   进而让整页出现横向滚动条。 */
+.prose :where(table) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
